@@ -18,11 +18,12 @@
   <svg id="chart"></svg>
 
   <script>
-  var url = "https://raw.githubusercontent.com/alessioPallotta/VIS-INFO/main/data.json";
+      // Dati di esempio
+    var dataset = [];
 
-  d3.json(url).then(function(dataset) {
-    
-
+    d3.json("https://raw.githubusercontent.com/alessioPallotta/VIS-INFO/main/data.json")
+      .then(function(data) {
+    dataset=data;
     // Array per i valori unici
     var uniqueValues = [];
 
@@ -130,17 +131,17 @@
     // Gestore dell'evento click per uno spicchio di torta
     function handleClick(event, d) {
       // Scambio dei valori delle variabili
-    
       dataset.forEach(function(x) {
-        x.var1 = Math.round((x.var1 / 360)*window.sum);
-      });
 
+        x.var1 = Math.round((x.var1 / 360)*sum);
+
+      });
       var temp = d.data.var1;
       d.data.var1 = d.data.var2;
       d.data.var2 = temp;
-       window.sum = d3.sum(dataset, function(x) { return x.var1; });
+       sum = d3.sum(dataset, function(x) { return x.var1; });
       dataset.forEach(function(x) {
-       x.var1 = Math.round((x.var1 / window.sum) * 360);
+       x.var1 = Math.round((x.var1 / sum) * 360);
       });
       // Aggiornamento del grafico
  
@@ -169,11 +170,7 @@
 
     // Chiamata all'aggiornamento del grafico
     updatePie();
-  }).catch(function(error) {
-   console.log("Errore durante il caricamento del file JSON:", error);
-  });
-
-
+    });
   </script>
 </body>
 </html>
