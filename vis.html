@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Diagramma a Torta</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .tooltip {
+      position: absolute;
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      pointer-events: none;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <svg id="chart"></svg>
+
+  <script>
+    // Dati di esempio
+    var dataset = [
+      { var1: 10, var2: 20 },
+      { var1: 30, var2: 40 },
+      { var1: 15, var2: 10 },
+      { var1: 25, var2: 50 },
+      { var1: 5, var2: 15 },
+      { var1: 20, var2: 5 },
+      { var1: 10, var2: 30 },
+      { var1: 15, var2: 5 },
+      { var1: 20, var2: 10 },
+      { var1: 30, var2: 15 }
+    ];
+
+
+    // Array per i valori unici
+    var uniqueValues = [];
+
+    // Itera sui dati originali
+    dataset.forEach(function(data) {
+      Object.values(data).forEach(function(value) {
+        if (!uniqueValues.includes(value)) {
+          uniqueValues.push(value);
+        }
+      });
+    });
+    var colori = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'cyan', 'magenta', 'lime', 'pink', 'teal', 'indigo', 'brown', 'gray', 'black', 'silver', 'gold', 'olive', 'navy', 'coral'];
+
+   var container = d3.select('#chart');
+
+    var width = window.innerWidth * 0.8;
+    var height = window.innerHeight * 0.8;
+    var radius = Math.min(width, height) / 2;
+
+    // Selettore dell'elemento SVG
+    var svg = d3.select("#chart")
+      .attr("width", width)
+      .attr("height", height)
+      .append("g")
+      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+   // Creazione della scala di colori personalizzata
+    var colorScale = d3.scaleOrdinal()
+      .domain(uniqueValues)
+      .range(colori.slice(0, uniqueValues.length));
+    // Calcolo della somma della prima variabile
+    var sum = d3.sum(dataset, function(d) { return d.var1; });
+
+    // Creazione dell'arco per ogni spicchio di torta
+    var arc = d3.arc()
+      .outerRadius(radius - 10)
+      .innerRadius(0);
+
+    // Creazione del generatore di layout a torta
+    var pie = d3.pie()
+      .sort(null)
+      .value(function(d) { return d.var1; });
+
+    // Normalizzazione dei valori della prima variabile
+    dataset.forEach(function(d) {
+      d.var1 = (d.var1 / sum) * 360;
+    });
+
+    // Creazione degli spicchi di torta
+    var slices = svg.selectAll("path")
+      .data(pie(dataset))
+      .enter()
+      .append("path")
+      .attr("d", arc)
+      .attr("fill", function(d) { return colorScale(d.data.var2); })
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2)
+      .each(function(d) { this._current = d; })
+      .on("click", handleClick) // Aggiunta del gestore dell'evento click
+      .on("mouseover", handleMouseOver) // Aggiunta del gestore dell'evento mouseover
+      .on("mouseout", handleMouseOut); // Aggiunta del gestore dell'evento mouseout
+
+    // Creazione del tooltip
+    var tooltip = d3.select("body")
+      .append("div")
+      .attr("class", "tooltip")
+      .style("display", "none");
+
+    // Funzione per la formattazione dei valori delle variabili
+    function formatValue(value) {
+      return value.toFixed(2); // Formattazione con due cifre decimali
+    }
+
+    // Gestore dell'evento mouseover
+    function handleMouseOver(event, d) {
+      // Posizione del tooltip
+      var x = event.pageX + 10;
+      var y = event.pageY + 10;
+
+      // Contenuto del tooltip
+      var tooltipContent = "Var1: " + formatValue(d.data.var1) + ", Colore: " + colorScale(d.data.var2) + ", Var2:" +formatValue(d.data.var2);
+
+      // Aggiornamento del contenuto e della posizione del tooltip
+      tooltip.html(tooltipContent)
+        .style("left", x + "px")
+        .style("top", y + "px")
+        .style("display", "block");
+    }
+
+    // Gestore dell'evento mouseout
+    function handleMouseOut() {
+      // Nascondi il tooltip
+      tooltip.style("display", "none");
+    }
+
+    // Funzione per l'interpolazione dell'arco
+    function arcTween(a) {
+      var interpolate = d3.interpolate(this._current, a);
+      this._current = interpolate(0);
+      return function(t) {
+        return arc(interpolate(t));
+      };
+    }
+
+    // Gestore dell'evento click per uno spicchio di torta
+    function handleClick(event, d) {
+      // Scambio dei valori delle variabili
+    
+      dataset.forEach(function(x) {
+        x.var1 = Math.round((x.var1 / 360)*window.sum);
+      });
+
+      var temp = d.data.var1;
+      d.data.var1 = d.data.var2;
+      d.data.var2 = temp;
+       window.sum = d3.sum(dataset, function(x) { return x.var1; });
+      dataset.forEach(function(x) {
+       x.var1 = Math.round((x.var1 / window.sum) * 360);
+      });
+      // Aggiornamento del grafico
+ 
+      updatePie();
+
+    }
+
+    // Aggiornamento degli spicchi di torta all'occorrenza
+    function updatePie() {
+      slices = slices.data(pie(dataset));
+
+      slices.transition().duration(500).attrTween("d", arcTween);
+
+      // Aggiornamento del colore degli spicchi di torta
+      slices.attr("fill", function(d) { return colorScale(d.data.var2); });
+
+      slices.enter()
+        .append("path")
+        .attr("d", arc)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 2)
+        .each(function(d) { this._current = d; });
+
+      slices.exit().remove();
+    }
+
+    // Chiamata all'aggiornamento del grafico
+    updatePie();
+  </script>
+</body>
+</html>
